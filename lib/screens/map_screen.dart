@@ -14,6 +14,7 @@ import 'package:travel_app_mvp/models/states.dart';
 import 'package:travel_app_mvp/services/state_service.dart';
 import 'package:travel_app_mvp/widgets/rio_location_marker.dart';
 import 'package:travel_app_mvp/widgets/attraction_detail_page.dart';
+import 'package:travel_app_mvp/utils/state_colors.dart';
 
 class MapScreen extends StatefulWidget {
   @override
@@ -276,13 +277,13 @@ class _MapScreenState extends State<MapScreen> {
       final polygonRings = state.boundaries;
 
       if (polygonRings.isNotEmpty) {
+        final colors = StateColors.getStateColors(state.name);
+
         PolygonAnnotationOptions polygonOptions = PolygonAnnotationOptions(
-          geometry: Polygon(coordinates: polygonRings),
-          fillColor: Color(
-            0xFF10B981,
-          ).withOpacity(0.4).value, // Success Green, more visible
+          geometry: Polygon(coordinates: state.boundaries),
+          fillColor: colors['normal']['fill'],
           fillOpacity: 0.4,
-          fillOutlineColor: Color(0xFF065F46).value, // Darker green border
+          fillOutlineColor: colors['normal']['outline'],
         );
 
         final annotation = await polygonAnnotationManager!.create(
@@ -305,7 +306,7 @@ class _MapScreenState extends State<MapScreen> {
         PointAnnotationOptions textOptions = PointAnnotationOptions(
           geometry: Point(coordinates: state.positionCoordinates),
           textField: state.name,
-          textSize: 14.0, // Slightly smaller
+          textSize: 11.0, // Slightly smaller
           textColor: Color(0xFF1F2937).value,
           textHaloColor: Colors.white.value,
           textHaloWidth: 3,
@@ -380,13 +381,13 @@ class _MapScreenState extends State<MapScreen> {
     }
 
     // Create normal polygon
+    final colors = StateColors.getStateColors(state.name);
+
     PolygonAnnotationOptions normalOptions = PolygonAnnotationOptions(
       geometry: Polygon(coordinates: state.boundaries),
-      fillColor: Color(
-        0xFF10B981,
-      ).withOpacity(0.4).value, // Success Green, more visible
+      fillColor: colors['normal']['fill'],
       fillOpacity: 0.4,
-      fillOutlineColor: Color(0xFF065F46).value, // Darker green border
+      fillOutlineColor: colors['normal']['outline'],
     );
 
     final newAnnotation = await polygonAnnotationManager!.create(normalOptions);
@@ -478,27 +479,48 @@ class _MapScreenState extends State<MapScreen> {
       barrierColor: Colors.transparent,
       transitionDuration: Duration(milliseconds: 400),
       pageBuilder: (context, animation, secondaryAnimation) {
-        return Align(
-          alignment: Alignment.bottomCenter,
-          child: Container(
-            margin: EdgeInsets.only(left: 16, right: 16, bottom: 16),
-            child: Material(
-              color: Colors.transparent,
-              child: SlideTransition(
-                position: Tween<Offset>(begin: Offset(0, 1), end: Offset(0, 0))
-                    .animate(
-                      CurvedAnimation(parent: animation, curve: Curves.easeOut),
-                    ),
-                child: StateInfoCard(
-                  state: state,
-                  onExploreLocations: _handleExploreState,
+        return Stack(
+          children: [
+            // Invisible touch-through area
+            Positioned.fill(
+              child: GestureDetector(
+                onTap: () => Navigator.of(context).pop(),
+                child: Container(color: Colors.transparent),
+              ),
+            ),
+            // Card positioned at bottom
+            Positioned(
+              bottom: 16,
+              left: 16,
+              right: 16,
+              child: Material(
+                color: Colors.transparent,
+                child: SlideTransition(
+                  position:
+                      Tween<Offset>(
+                        begin: Offset(0, 1),
+                        end: Offset(0, 0),
+                      ).animate(
+                        CurvedAnimation(
+                          parent: animation,
+                          curve: Curves.easeOut,
+                        ),
+                      ),
+                  child: StateInfoCard(
+                    state: state,
+                    onExploreLocations: _handleExploreState,
+                  ),
                 ),
               ),
             ),
-          ),
+          ],
         );
       },
-    );
+    ).then((_) {
+      if (selectedStateAnnotationId != null && selectedState != null) {
+        _resetState(selectedStateAnnotationId!, selectedState!);
+      }
+    });
   }
 
   void _handleExploreState(States state) {
@@ -561,7 +583,7 @@ class _MapScreenState extends State<MapScreen> {
         center: Point(
           coordinates: Position(-51.9253, -14.2350),
         ), // Brazil center
-        zoom: 4.0,
+        zoom: 3.0,
         bearing: 0,
         pitch: 0,
       ),
@@ -614,6 +636,7 @@ class _MapScreenState extends State<MapScreen> {
         // Change from just MapWidget to Stack
         children: [
           MapWidget(
+            styleUri: "mapbox://styles/richardmausch/cmfvbjvzk001m01sbhl7w4g13",
             cameraOptions: camera,
             onMapCreated: _onMapCreated,
             onCameraChangeListener: _onCameraChangeListener,

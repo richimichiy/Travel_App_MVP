@@ -66,7 +66,7 @@ class States {
 
     // Take every 3rd point to reduce complexity by ~66%
     List<Position> simplified = [];
-    for (int i = 0; i < coordinates.length; i += 3) {
+    for (int i = 0; i < coordinates.length; i += 2) {
       simplified.add(
         Position(coordinates[i][0].toDouble(), coordinates[i][1].toDouble()),
       );
